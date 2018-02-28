@@ -116,12 +116,13 @@ top_spans = zeros(1,num_scans);
 mins_bel_bcb = zeros(1,num_scans);
 init_kLOS_map = zeros(1,961);
 tic
-
+bel_DE = 10;
+abo_DE = 60;
 parfor i = 1:961%[round(961*rand),round(961*rand),round(961*rand),round(961*rand),round(961*rand)]%1:1:num_scans
 %parfor i = 1:961%[round(961*rand),round(961*rand),round(961*rand),round(961*rand),round(961*rand)]%1:1:num_scans
     disp(['On scan ',num2str(i)])
     
-    bcone = binned_cones(:,:,i);
+    bcone = cluster_binned_cones(:,:,i);
     draw_DV_matrices = XVFg_matrices_drawer2(trial_DVs,draw_kgamma,draw_egamma,size(binned_cone));
 
     
@@ -142,11 +143,11 @@ parfor i = 1:961%[round(961*rand),round(961*rand),round(961*rand),round(961*rand
 %     trial_DKs = round(size(corr_cone,1)/2) + (-5:5);
    
     corr_cone = bcone;
-    corr_cone_crop = corr_cone(:,draw_y_range);
-    corr_cone_crop = mat2gray(corr_cone_crop);
+%     corr_cone_crop = corr_cone(:,draw_y_range);
+%     corr_cone_crop = mat2gray(corr_cone_crop);
 
-    ccc_mean = mean2(corr_cone);
-    ccc_denom = sqrt(sum(sum((corr_cone_crop-ccc_mean).^2)));
+%     ccc_mean = mean2(corr_cone);
+%     ccc_denom = sqrt(sum(sum((corr_cone_crop-ccc_mean).^2)));
     trial_DKs = kLOS_pt + (-5:5);   
      
     %I_of_DVs_table = cell(length(trial_DKs),length(trial_DEs));
@@ -157,7 +158,13 @@ parfor i = 1:961%[round(961*rand),round(961*rand),round(961*rand),round(961*rand
     max__corrs_table = NaN*ones(length(trial_DKs),length(trial_DEs));
     for trial_DE_i = 1:size(trial_DEs,2)
         trial_DE = trial_DEs(trial_DE_i); 
+        draw_y_range = trial_DE-bel_DE:trial_DE+abo_DE;
+        corr_cone_crop = corr_cone(:,draw_y_range);
+        corr_cone_crop = mat2gray(corr_cone_crop);
 
+        ccc_mean = mean2(corr_cone_crop);
+        ccc_denom = sqrt(sum(sum((corr_cone_crop-ccc_mean).^2)));
+        
         for trial_DK_i = 1:length(trial_DKs)
             if sqrt( (trial_DK_i-length(trial_DKs)/2)^2 + (trial_DE_i - length(trial_DEs)/2)^2) > 20
                 continue
@@ -170,6 +177,7 @@ parfor i = 1:961%[round(961*rand),round(961*rand),round(961*rand),round(961*rand
                 [X_matrix] = X_editor3(draw_DV_matrices(:,:,trial_DV_i),trial_DE,trial_DK,draw_y_range);
                 X_matrix = mat2gray(X_matrix);
                 Xm_mean = mean(X_matrix(:));
+                
                 
                 NCC_denom = sqrt(sum(sum((X_matrix-Xm_mean).^2))) * ccc_denom;
 
@@ -226,6 +234,7 @@ parfor i = 1:961%[round(961*rand),round(961*rand),round(961*rand),round(961*rand
     top_spans(i) = top_span;
     
     if plot_fig == 1
+        draw_y_range = best__DE-bel_DE:best__DE+abo_DE;
         overlay_matrix = X_editor3(draw_DV_matrices(:,:,best__DV_i),best__DE,best__DK,draw_y_range);
         overlay_matrix = padarray(overlay_matrix,[0,draw_y_range(1)-1],'pre');
         overlay_matrix = padarray(overlay_matrix,[0,size(corr_cone,2)-draw_y_range(end)],'post');
@@ -238,7 +247,7 @@ parfor i = 1:961%[round(961*rand),round(961*rand),round(961*rand),round(961*rand
         figure,
         subplot(231), imagesc(max__corrs_table), axis xy, title('NC MC table')
         subplot(234), imagesc(best__DVs_table), axis xy, title('NC DVs table')
-        subplot(2,3,[2,5]), imagesc((1:size(corr_cone,1)),fliplr(1:size(corr_cone,2)),rot90(imgaussfilt(corr_cone,3)+0*(mean2(imgaussfilt(corr_cone,3))/mean2(overlay_matrix))*overlay_matrix)), axis xy, hold on;
+        subplot(2,3,[2,5]), imagesc((1:size(corr_cone,1)),fliplr(1:size(corr_cone,2)),rot90(imgaussfilt(corr_cone,3)+.1*(mean2(imgaussfilt(corr_cone,3))/mean2(overlay_matrix))*overlay_matrix)), axis xy, hold on;
         plot(plotfitx, -best__DV*(plotfitx-best__DK)+best__DE, 'w:')
         plot(plotfitx, +best__DV*(plotfitx-best__DK)+best__DE, 'w:')
 
@@ -325,7 +334,7 @@ title('Max NormCorr Evals [0-1]')
 xlabel('Y (mm)');
 ylabel('X (mm)');  
 
-suptitle('Scan 18/02/26: NormCorr - No Cluster')
+suptitle('Scan 18/02/27: NormCorr - 4 Cluster')
 
 
 % figure,
