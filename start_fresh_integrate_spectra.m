@@ -1,16 +1,19 @@
 load_data = 1;
 if load_data == 1  
     load 'start_fresh_cluster1_180228.mat';
+    load 'normed_binned_cones.mat';
     load 'rfc_FL_scan_170927.mat';
     load 'top_spans.mat';
     load 'mins_bel_bcb.mat';
     load 'cool_purply_science_colormap.mat';
 end
+
+num_scans = 961; e_bin = 3; k_bin = 1;
 AVE_FL = nanmean(rfc_FL_Es);
-% pix2eV = (1.599/(2*496));
+pix2eV = (1.599/(2*496));
 pix2invA = 0.512*0.04631/180*3.1415*14/30*sqrt(110-4);
 table_title = 'Cluster1 Scan 180228';
-dirac_Es = dos_mins_maybe_dps;%dirac_E_map;%bcb_finds;%BCB_Es;%rfc_Es_after;   %input Energies vector (cone pixels)
+dirac_Es = dirac_E_map;%bcb_finds;%BCB_Es;%rfc_Es_after;   %input Energies vector (cone pixels)
 dirac_ks = dirac_K_map;%kLOS;%.5*(rfc_ks_after+kLOS);   %input mtm vector (cone pixels)
 
 DPEs_eV = (mean(rfc_FL_Es) - dirac_Es)*pix2eV;%(rfc_FL_Es - bcb_findss)*pix2eV;%bcb_finds;%rfc_Es_after;%(rfc_FL_Es - rfc_small_cut_Es)*pix2eV;
@@ -24,7 +27,7 @@ B_interval_list = (B_interval_list_abs - min(B_map(:)))/(max(B_map(:))-min(B_map
 
 pre_filter = cat(1,[]);
 pre_filter(1,:) = [171,189, dirac_ks];
-pre_filter(2,:) = [220,inf, DP_intensity_map];
+pre_filter(2,:) = [200,inf, DP_intensity_map];
 %pre_filter(3,:) = [.15,inf, fit_evals_map];
 %pre_filter(3,:) = [0,5, eval_under_bcb];
 %pre_filter(4,:) = [mean(top_spans)-std(top_spans), mean(top_spans)+std(top_spans), top_spans];
@@ -91,10 +94,8 @@ for iii=1:number_panels
          FL_eV = FL_pix * pix2eV;
          mean_DPE_eV(iii) = mean_DPE_eV(iii) + DPE_eV;
          mean_FL_eV(iii) = mean_FL_eV(iii) + FL_eV;
-
      end
-  
-         
+      
      mean_DPE_eV(iii) = mean_DPE_eV(iii) / length(find(region_list{iii}==1));
      mean_FL_eV(iii) = mean_FL_eV(iii) / length(find(region_list{iii}==1));
      panel_nnn(iii) = nnn;
@@ -113,14 +114,13 @@ out_nnn = zeros(1,size(region_list,1));
 for iii=1:size(region_list,1)    
     regional_arpes(:,:,iii) = imgaussfilt(regional_arpes(:,:,iii),1); 
     region_arpes = regional_arpes(:,:,iii);
-    [region_arpes_symmetrized, sym_Kaxis]=Symmetrized_spectra(region_arpes,K_binned);
-    ax = subplot(2,size(B_interval_list,1),iii); 
+    [region_arpes_symmetrized, sym_Kaxis]=Symmetrized_spectra(region_arpes,binK_interp(:,1));    
     
     Eaxis_eV_0fixed = binE_interp(1,:) * e_bin * pix2eV;
-    
     Kaxis_invA = binK_interp(:,1) * k_bin * pix2invA;    
     sym_Kaxis_invA = sym_Kaxis * k_bin * pix2invA;
     
+    ax = subplot(2,size(B_interval_list,1),iii); 
     if length(find(region_list{iii}==1)) > 0
         
         %imagesc(sym_Kaxis_invA, flip(Eaxis_eV_0fixed), rot90(norman(region_arpes_symmetrized,0,10))), axis xy
