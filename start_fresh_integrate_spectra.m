@@ -1,6 +1,6 @@
 load_data = 1;
 if load_data == 1  
-    load 'start_fresh_cluster1_180228.mat';
+    load 'start_fresh_cluster1_180228_3.mat';
     load 'normed_binned_cones.mat';
     load 'rfc_FL_scan_170927.mat';
     load 'top_spans.mat';
