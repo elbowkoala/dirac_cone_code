@@ -1,41 +1,37 @@
 load_data = 1;
 if load_data == 1  
-    load 'start_fresh_cluster1_180228_3.mat';
+    load 'start_fresh_cluster1_180228_2.mat';
     load 'normed_binned_cones.mat';
     load 'rfc_FL_scan_170927.mat';
     load 'top_spans.mat';
     load 'mins_bel_bcb.mat';
-    load 'cool_purply_science_colormap.mat';
+    load 'purply_colormap_64.mat';
 end
+table_title = 'Cluster1 Scan 180227 with k & E correction';
 
-num_scans = 961; e_bin = 3; k_bin = 1;
-AVE_FL = nanmean(rfc_FL_Es);
-pix2eV = (1.599/(2*496));
-pix2invA = 0.512*0.04631/180*3.1415*14/30*sqrt(110-4);
-table_title = 'Cluster1 Scan 180228';
+num_scans=961; e_bin=3; k_bin=1; AVE_FL=nanmean(rfc_FL_Es);
+pix2eV=(1.599/(2*496)); pix2invA=0.512*0.04631/180*3.1415*14/30*sqrt(110-4);
+
 dirac_Es = dirac_E_map;%bcb_finds;%BCB_Es;%rfc_Es_after;   %input Energies vector (cone pixels)
 dirac_ks = dirac_K_map;%kLOS;%.5*(rfc_ks_after+kLOS);   %input mtm vector (cone pixels)
 
-DPEs_eV = (mean(rfc_FL_Es) - dirac_Es)*pix2eV;%(rfc_FL_Es - bcb_findss)*pix2eV;%bcb_finds;%rfc_Es_after;%(rfc_FL_Es - rfc_small_cut_Es)*pix2eV;
-B_map = reshape(DPEs_eV,31,31);   
-%B_map = reshape(dirac_V_map*pix2eV/pix2invA,31,31);
+plot_by_indiv_E=1; plot_by_indiv_FL=0; plot_by_mean_FL=0;
 
-B_interval_list_abs = [.42,.44; .44,.46; .46,.48; .48,.50; .50,.52];
-B_interval_list_abs = [.40,.42; .42,.44; .44,.46; .46,.48; .48,.50; .50,.52; .52,.54];%; .445,.455; .455,.465; .465,.475; .475, .495; .495,.505]; 
-%B_interval_list_abs = [2.8,3; 3.0,3.2; 3.2,3.4; 3.4,3.6; 3.6,3.8; 3.8,4.0];%3.1,3.4; 3.4,3.7; 3.7,4.0; 4.0,4.3];
+DPEs_eV = (((rfc_FL_Es) - dirac_Es)*pix2eV);%(rfc_FL_Es - bcb_findss)*pix2eV;%bcb_finds;%rfc_Es_after;%(rfc_FL_Es - rfc_small_cut_Es)*pix2eV;
+B_map = reshape(DPEs_eV,31,31);   
+
+B_interval_list_abs = [171,174; 174,177; 177,180; 180,183; 183,186];%
+B_interval_list_abs = [.42,.44; .44,.45; .45,.46; .46,.47; .47,.48; .48,.50];%[.43,.44;.44,.45; .45,.46; .46,.47; .47,.48; .48,.49;];%[.40,.42;.42,.44; .44,.46; .46,.48; .48,.50; .5,.52];% .44,.45; .45,.455; .455,.46; .46,.465; .465,.47; .47,.485; .485,.5];% .485,.51];%[.43,.44; .44,.45; .45,.46; .46,.47; .47,.48; .48,.49; .49,.5];%,;%; 
 B_interval_list = (B_interval_list_abs - min(B_map(:)))/(max(B_map(:))-min(B_map(:)));
 
 pre_filter = cat(1,[]);
 pre_filter(1,:) = [171,189, dirac_ks];
-pre_filter(2,:) = [200,inf, DP_intensity_map];
-%pre_filter(3,:) = [.15,inf, fit_evals_map];
-%pre_filter(3,:) = [0,5, eval_under_bcb];
-%pre_filter(4,:) = [mean(top_spans)-std(top_spans), mean(top_spans)+std(top_spans), top_spans];
-pre_filter(3,:) = [0,1 mins_bel_bcb];
-pre_filter(4,:) = [.2,inf, fit_evals_map];
+pre_filter(2,:) = [250,inf, DP_intensity_map];
+pre_filter(3,:) = [0,.8 mins_bel_bcb];
+pre_filter(4,:) = [0,inf, fit_evals_map];
 
 figure
-allfiltered = ones(1,961);%reshape(B__map,1,961);
+allfiltered = ones(1,961);
 for NN = 1:size(pre_filter,1)
     allfiltered(pre_filter(NN,3:end) < pre_filter(NN,1)) = 0;
     allfiltered(pre_filter(NN,3:end) > pre_filter(NN,2)) = 0;
@@ -51,7 +47,11 @@ imagesc(filtered_A_map), axis xy
 A_map = filtered_A_map;
 A_interval_list = [0.5,1];
 
-[binE_interp,binK_interp] = meshgrid(-round(600/e_bin):1:round(80/e_bin), -round(100/k_bin):1:round(100/k_bin)); 
+if plot_by_indiv_E==1
+    [binE_interp,binK_interp] = meshgrid(-round(300/e_bin):1:round(380/e_bin), -round(100/k_bin):1:round(100/k_bin)); 
+elseif plot_by_indiv_FL==1 || plot_by_mean_FL==1
+    [binE_interp,binK_interp] = meshgrid(-round(600/e_bin):1:round(80/e_bin), -round(100/k_bin):1:round(100/k_bin)); 
+end
 full_arpes = zeros(size(binE_interp));
 
 [region_list]=Correlation_list_indep_ranges(A_map,B_map,A_interval_list,B_interval_list);
@@ -82,8 +82,14 @@ for iii=1:number_panels
          
          bcone = binned_cones(:,:,jjj);
          [bE_coor, bK_coor] = meshgrid(1:size(bcone,2),1:size(bcone,1));
-         bE_coor = bE_coor - mean(rfc_FL_Es)/e_bin;%rfc_FL_Es(jjj)/e_bin;%dirac_Es(jjj)/e_bin;  
-         bK_coor = bK_coor - dirac_ks(jjj)/k_bin;  
+         if plot_by_indiv_E ==1
+             bE_coor = bE_coor-dirac_Es(jjj)/e_bin;
+         elseif plot_by_indiv_FL==1
+             bE_coor = bE_coor-rfc_FL_Es(jjj)/e_bin;
+         elseif plot_by_mean_FL==1
+             bE_coor = bE_coor - mean(rfc_FL_Es)/e_bin;
+         end
+         bK_coor = bK_coor - (dirac_ks(jjj))/k_bin;  %mean(dirac_ks)/k_bin;%
          interp_arpes = interp2(bE_coor, bK_coor, bcone, binE_interp, binK_interp);
          interped_arpes(:,:,jjj) = interp_arpes;
          regional_arpes(:,:,iii) = regional_arpes(:,:,iii) + interp_arpes;
@@ -112,11 +118,17 @@ out_eax = cell([1,size(region_list,1)]);
 out_nnn = zeros(1,size(region_list,1));
 
 for iii=1:size(region_list,1)    
-    regional_arpes(:,:,iii) = imgaussfilt(regional_arpes(:,:,iii),1); 
+    regional_arpes(:,:,iii) = imgaussfilt(regional_arpes(:,:,iii),1.5); 
     region_arpes = regional_arpes(:,:,iii);
     [region_arpes_symmetrized, sym_Kaxis]=Symmetrized_spectra(region_arpes,binK_interp(:,1));    
     
-    Eaxis_eV_0fixed = binE_interp(1,:) * e_bin * pix2eV;
+    if plot_by_indiv_E==1     
+        Eaxis_eV_0fixed = (binE_interp(1,:) * e_bin * pix2eV)+mean_DPE_eV(iii);
+    elseif plot_by_indiv_FL==1
+        Eaxis_eV_0fixed = (binE_interp(1,:)*e_bin*pix2eV);
+    elseif plot_by_mean_FL==1
+        Eaxis_eV_0fixed = (binE_interp(1,:)*e_bin*pix2eV);
+    end
     Kaxis_invA = binK_interp(:,1) * k_bin * pix2invA;    
     sym_Kaxis_invA = sym_Kaxis * k_bin * pix2invA;
     
@@ -163,7 +175,8 @@ for iii=1:size(region_list,1)
        
     ax2 = subplot(2,size(B_interval_list,1),iii+size(B_interval_list,1));
     imagesc(B_map), axis xy, hold on; %caxis([min(B_map(B_map>0)),max(B_map(B_map>0))]), hold on;
-    plot(map_regions(1,:,iii),map_regions(2,:,iii),'p','Color',[0,255,255]/255,'LineWidth',1), hold off;
+    plot(map_regions(1,:,iii),map_regions(2,:,iii),'p','Color',[0,255,255]/255,'LineWidth',1,'MarkerSize',5), hold off;
+    set(gca, 'xtick', []), set(gca, 'ytick',[]);
     title(['nnn=',num2str(panel_nnn(iii))])
     colormap(map_of_color_64)
     
